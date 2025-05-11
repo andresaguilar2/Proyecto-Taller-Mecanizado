@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Pago | Sistema de Gestión de Trabajos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4>Registrar Pago</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <p><strong>Trabajo:</strong> #{{ trabajo.id }} - {{ trabajo.cliente.nombre }}</p>
+                    <p><strong>Saldo pendiente:</strong> ${{ trabajo.saldo }}</p>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="id_monto" class="form-label">Monto del pago:</label>
+                        {{ form.monto }}
+                        {% if form.monto.errors %}
+                        <div class="text-danger">{{ form.monto.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'detalle_trabajo' trabajo.id %}" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-success">Registrar Pago</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

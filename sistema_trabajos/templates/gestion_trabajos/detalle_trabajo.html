@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Trabajo #{{ trabajo.id }} | Sistema de Gestión de Trabajos{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Detalles del Trabajo #{{ trabajo.id }}</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'editar_trabajo' trabajo.id %}" class="btn btn-primary">Editar</a>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Volver</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Información del Trabajo</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Cliente:</strong> {{ trabajo.cliente.nombre }}</p>
+                <p><strong>Descripción:</strong> {{ trabajo.descripcion }}</p>
+                <p><strong>Fecha de creación:</strong> {{ trabajo.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                <p><strong>Valor Total:</strong> ${{ trabajo.valor_total }}</p>
+                <p>
+                    <strong>Saldo Pendiente:</strong> 
+                    <span class="{% if trabajo.saldo > 0 %}text-danger{% else %}text-success{% endif %}">
+                        ${{ trabajo.saldo }}
+                    </span>
+                </p>
+                <p>
+                    <strong>Estado:</strong>
+                    {% if trabajo.estado == 'Pendiente' %}
+                        <span class="badge bg-warning">Pendiente</span>
+                    {% elif trabajo.estado == 'En Proceso' %}
+                        <span class="badge bg-info">En Proceso</span>
+                    {% elif trabajo.estado == 'Terminado' %}
+                        <span class="badge bg-primary">Terminado</span>
+                    {% elif trabajo.estado == 'Entregado' %}
+                        <span class="badge bg-success">Entregado</span>
+                    {% endif %}
+                </p>
+                
+                {% if trabajo.requiere_factura %}
+                <p>
+                    <strong>Factura Electrónica:</strong> 
+                    {{ trabajo.factura_electronica|default:"No registrada" }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Pagos Registrados</h5>
+                {% if trabajo.saldo > 0 %}
+                <a href="{% url 'registrar_pago' trabajo.id %}" class="btn btn-sm btn-light">Registrar Pago</a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if pagos %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Fecha</th>
+                                <th>Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pago in pagos %}
+                            <tr>
+                                <td>{{ pago.id }}</td>
+                                <td>{{ pago.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>${{ pago.monto }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    No hay pagos registrados para este trabajo.
+                    {% if trabajo.saldo > 0 %}
+                    <a href="{% url 'registrar_pago' trabajo.id %}">Registrar un pago</a>.
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
