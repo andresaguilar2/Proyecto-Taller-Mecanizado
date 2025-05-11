@@ -796,9 +796,96 @@
         }
 
         function handleEditarTrabajo() {
-            // Esta función se implementaría para editar un trabajo existente
-            alert('Funcionalidad de edición no implementada en esta versión simplificada');
+    const trabajo = DB.trabajos.find(t => t.id === currentTrabajoId);
+    if (!trabajo) {
+        alert('Trabajo no encontrado');
+        return;
+    }
+
+    // Mostrar formulario con los datos actuales
+    showTrabajoForm();
+
+    document.getElementById('trabajoCliente').value = trabajo.cliente_id;
+    document.getElementById('trabajoDescripcion').value = trabajo.descripcion;
+    document.getElementById('trabajoValor').value = trabajo.valor_total;
+    document.getElementById('trabajoEstado').value = trabajo.estado;
+    document.getElementById('requiereFactura').checked = trabajo.requiere_factura;
+    if (trabajo.requiere_factura) {
+        facturaContainer.style.display = 'block';
+        document.getElementById('facturaNumero').value = trabajo.factura_electronica || '';
+    }
+
+    // Cambiar texto del botón y comportamiento del submit
+    const trabajoForm = document.getElementById('trabajoForm');
+    const submitBtn = trabajoForm.querySelector('button[type="submit"]');
+    submitBtn.textContent = 'Actualizar Trabajo';
+
+    trabajoForm.onsubmit = function (e) {
+        e.preventDefault();
+
+        const clienteId = parseInt(document.getElementById('trabajoCliente').value);
+        const descripcion = document.getElementById('trabajoDescripcion').value.trim();
+        const valorTotal = parseFloat(document.getElementById('trabajoValor').value);
+        const estado = document.getElementById('trabajoEstado').value;
+
+        let isValid = true;
+
+        if (!clienteId) {
+            isValid = false;
+            document.getElementById('trabajoCliente').classList.add('is-invalid');
+        } else {
+            document.getElementById('trabajoCliente').classList.remove('is-invalid');
         }
+
+        if (!descripcion) {
+            isValid = false;
+            document.getElementById('trabajoDescripcion').classList.add('is-invalid');
+        } else {
+            document.getElementById('trabajoDescripcion').classList.remove('is-invalid');
+        }
+
+        if (isNaN(valorTotal) || valorTotal <= 0) {
+            isValid = false;
+            document.getElementById('trabajoValor').classList.add('is-invalid');
+        } else {
+            document.getElementById('trabajoValor').classList.remove('is-invalid');
+        }
+
+        if (!isValid) {
+            return;
+        }
+
+        trabajo.cliente_id = clienteId;
+        trabajo.descripcion = descripcion;
+        trabajo.valor_total = valorTotal;
+        trabajo.estado = estado;
+        trabajo.requiere_factura = document.getElementById('requiereFactura').checked;
+        trabajo.factura_electronica = trabajo.requiere_factura ? document.getElementById('facturaNumero').value : null;
+
+        // Recalcular saldo si el valor total cambió
+        const totalPagado = DB.pagos.filter(p => p.trabajo_id === trabajo.id).reduce((sum, p) => sum + p.monto, 0);
+        trabajo.saldo = Math.max(0, trabajo.valor_total - totalPagado);
+
+        DB.saveTrabajos();
+
+        // Mostrar alerta de éxito
+        const alerta = document.createElement('div');
+        alerta.className = 'alert alert-success mt-3';
+        alerta.role = 'alert';
+        alerta.textContent = 'Trabajo actualizado correctamente';
+
+        document.querySelector('.dashboard-container .container').prepend(alerta);
+
+        setTimeout(() => alerta.remove(), 3000);
+
+        // Restaurar comportamiento y texto original
+        trabajoForm.onsubmit = handleTrabajoSubmit;
+        submitBtn.textContent = 'Guardar Trabajo';
+
+        showTrabajosList();
+    };
+}
+
 
         // Inicializar la aplicación
         showLoginForm();
