@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Trabajos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .dashboard-container {
+            display: none;
+            padding: 20px;
+        }
+        .nav-tabs {
+            margin-bottom: 20px;
+        }
+        .tab-content {
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            padding: 20px;
+        }
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .trabajo-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .trabajo-item:hover {
+            background-color: #f1f1f1;
+        }
+        .badge-pendiente {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .badge-proceso {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .badge-terminado {
+            background-color: #6f42c1;
+            color: white;
+        }
+        .badge-entregado {
+            background-color: #198754;
+            color: white;
+        }
+        .cliente-form, .trabajo-form, .trabajo-detalle, .registro-form {
+            display: none;
+        }
+        .saldo-positivo {
+            color: #dc3545;
+        }
+        .saldo-cero {
+            color: #198754;
+        }
+    </style>
+</head>
+<body>
+    <!-- Contenedor de Login -->
+    <div class="login-container" id="loginContainer">
+        <h2 class="text-center mb-4">Sistema de Gestión de Trabajos</h2>
+        <ul class="nav nav-tabs" id="authTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab" aria-controls="login" aria-selected="true">Iniciar Sesión</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab" aria-controls="register" aria-selected="false">Registrarse</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="authTabsContent">
+            <!-- Formulario de Login -->
+            <div class="tab-pane fade show active" id="login" role="tabpanel" aria-labelledby="login-tab">
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label for="loginUsername" class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="loginUsername" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="loginPassword" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Iniciar Sesión</button>
+                </form>
+            </div>
+            
+            <!-- Formulario de Registro -->
+            <div class="tab-pane fade" id="register" role="tabpanel" aria-labelledby="register-tab">
+                <form id="registerForm">
+                    <div class="mb-3">
+                        <label for="registerNombre" class="form-label">Nombre Completo</label>
+                        <input type="text" class="form-control" id="registerNombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="registerUsername" class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="registerUsername" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="registerPassword" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="registerPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="registerConfirmPassword" class="form-label">Confirmar Contraseña</label>
+                        <input type="password" class="form-control" id="registerConfirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Registrarse</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard-container" id="dashboardContainer">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">Sistema de Gestión de Trabajos</a>
+                <div class="d-flex">
+                    <span class="navbar-text me-3" id="userWelcome"></span>
+                    <button class="btn btn-outline-danger" id="logoutBtn">Cerrar Sesión</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            <!-- Botones de acción -->
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-outline-primary me-2" id="nuevoClienteBtn">Nuevo Cliente</button>
+                <button class="btn btn-success" id="nuevoTrabajoBtn">Nuevo Trabajo</button>
+            </div>
+
+            <!-- Lista de Trabajos -->
+            <div class="card" id="trabajosListaContainer">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Trabajos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Descripción</th>
+                                    <th>Fecha</th>
+                                    <th>Valor Total</th>
+                                    <th>Saldo</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trabajosTableBody">
+                                <!-- Los trabajos se cargarán dinámicamente aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulario de Nuevo Cliente -->
+            <div class="card cliente-form" id="clienteFormContainer">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Registrar Nuevo Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <form id="clienteForm" class="form-container">
+                        <div class="mb-3">
+                            <label for="clienteNombre" class="form-label">Nombre Completo</label>
+                            <input type="text" class="form-control" id="clienteNombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clienteTelefono" class="form-label">Número de Teléfono</label>
+                            <input type="tel" class="form-control" id="clienteTelefono" required>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-secondary me-2" id="cancelarClienteBtn">Cancelar</button>
+                            <button type="submit" class="btn btn-success">Guardar Cliente</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Formulario de Nuevo Trabajo -->
+            <div class="card trabajo-form" id="trabajoFormContainer">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Registrar Nuevo Trabajo</h5>
+                </div>
+                <div class="card-body">
+                    <form id="trabajoForm" class="form-container">
+                        <div class="mb-3">
+                            <label for="trabajoCliente" class="form-label">Cliente</label>
+                            <select class="form-select" id="trabajoCliente" required>
+                                <option value="">Seleccione un cliente</option>
+                                <!-- Los clientes se cargarán dinámicamente aquí -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="trabajoDescripcion" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="trabajoDescripcion" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="trabajoValor" class="form-label">Valor Total</label>
+                            <input type="number" class="form-control" id="trabajoValor" min="0.01" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="trabajoEstado" class="form-label">Estado</label>
+                            <select class="form-select" id="trabajoEstado">
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="En Proceso">En Proceso</option>
+                                <option value="Terminado">Terminado</option>
+                                <option value="Entregado">Entregado</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="requiereFactura">
+                            <label class="form-check-label" for="requiereFactura">Requiere factura electrónica</label>
+                        </div>
+                        <div class="mb-3" id="facturaContainer" style="display: none;">
+                            <label for="facturaNumero" class="form-label">Número de Factura</label>
+                            <input type="text" class="form-control" id="facturaNumero">
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-secondary me-2" id="cancelarTrabajoBtn">Cancelar</button>
+                            <button type="submit" class="btn btn-success">Guardar Trabajo</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Detalle de Trabajo -->
+            <div class="trabajo-detalle" id="trabajoDetalleContainer">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 id="trabajoDetalleTitle">Detalles del Trabajo #<span id="trabajoDetalleId"></span></h3>
+                    <button class="btn btn-secondary" id="volverBtn">Volver</button>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Información del Trabajo</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <strong>Cliente:</strong>
+                                        <p id="detalleCliente"></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Estado:</strong>
+                                        <p><span id="detalleEstado" class="badge"></span></p>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <strong>Fecha de creación:</strong>
+                                        <p id="detalleFecha"></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Valor Total:</strong>
+                                        <p id="detalleValor"></p>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <strong>Saldo Pendiente:</strong>
+                                        <p id="detalleSaldo"></p>
+                                    </div>
+                                    <div class="col-md-6" id="detalleFacturaContainer" style="display: none;">
+                                        <strong>Factura Electrónica:</strong>
+                                        <p id="detalleFactura"></p>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Descripción:</strong>
+                                    <p id="detalleDescripcion"></p>
+                                </div>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <button class="btn btn-outline-primary" id="editarTrabajoBtn">Editar Trabajo</button>
+                                    <button class="btn btn-success" id="registrarPagoBtn">Registrar Pago</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Historial de Pagos</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Fecha</th>
+                                                <th>Monto</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="pagosTableBody">
+                                            <!-- Los pagos se cargarán dinámicamente aquí -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="noPagosMessage" class="text-center text-muted py-3" style="display: none;">
+                                    No hay pagos registrados
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Registrar Pago -->
+    <div class="modal fade" id="registrarPagoModal" tabindex="-1" aria-labelledby="registrarPagoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="registrarPagoModalLabel">Registrar Pago</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="pagoForm">
+                        <div class="mb-3">
+                            <label for="pagoMonto" class="form-label">Monto</label>
+                            <input type="number" class="form-control" id="pagoMonto" min="0.01" step="0.01" required>
+                            <div class="form-text">Saldo pendiente: $<span id="saldoPendiente"></span></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="guardarPagoBtn">Registrar Pago</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        // Base de datos en localStorage
+        const DB = {
+            usuarios: [],
+            clientes: [],
+            trabajos: [],
+            pagos: [],
+            
+            init() {
+                // Cargar datos del localStorage
+                this.usuarios = JSON.parse(localStorage.getItem('usuarios') || '[]');
+                this.clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
+                this.trabajos = JSON.parse(localStorage.getItem('trabajos') || '[]');
+                this.pagos = JSON.parse(localStorage.getItem('pagos') || '[]');
+                
+                // Si no hay usuarios, crear uno de prueba
+                if (this.usuarios.length === 0) {
+                    this.usuarios.push({
+                        id: 1,
+                        nombre: 'Administrador',
+                        usuario: 'admin',
+                        password: CryptoJS.SHA256('admin').toString()
+                    });
+                    this.saveUsuarios();
+                }
+            },
+            
+            saveUsuarios() {
+                localStorage.setItem('usuarios', JSON.stringify(this.usuarios));
+            },
+            
+            saveClientes() {
+                localStorage.setItem('clientes', JSON.stringify(this.clientes));
+            },
+            
+            saveTrabajos() {
+                localStorage.setItem('trabajos', JSON.stringify(this.trabajos));
+            },
+            
+            savePagos() {
+                localStorage.setItem('pagos', JSON.stringify(this.pagos));
+            }
+        };
+
+        // Inicializar la base de datos
+        DB.init();
+
+        // Variables globales
+        let currentUser = null;
+        let currentTrabajoId = null;
+
+        // Elementos DOM
+        const loginContainer = document.getElementById('loginContainer');
+        const dashboardContainer = document.getElementById('dashboardContainer');
+        const userWelcome = document.getElementById('userWelcome');
+        const trabajosTableBody = document.getElementById('trabajosTableBody');
+        const clienteFormContainer = document.getElementById('clienteFormContainer');
+        const trabajoFormContainer = document.getElementById('trabajoFormContainer');
+        const trabajoDetalleContainer = document.getElementById('trabajoDetalleContainer');
+        const trabajosListaContainer = document.getElementById('trabajosListaContainer');
+        const trabajoCliente = document.getElementById('trabajoCliente');
+        const requiereFactura = document.getElementById('requiereFactura');
+        const facturaContainer = document.getElementById('facturaContainer');
+        const registrarPagoModal = new bootstrap.Modal(document.getElementById('registrarPagoModal'));
+
+        // Event Listeners
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('registerForm').addEventListener('submit', handleRegister);
+        document.getElementById('logoutBtn').addEventListener('submit', handleLogout);
+        document.getElementById('nuevoClienteBtn').addEventListener('click', showClienteForm);
+        document.getElementById('nuevoTrabajoBtn').addEventListener('click', showTrabajoForm);
+        document.getElementById('cancelarClienteBtn').addEventListener('click', showTrabajosList);
+        document.getElementById('cancelarTrabajoBtn').addEventListener('click', showTrabajosList);
+        document.getElementById('clienteForm').addEventListener('submit', handleClienteSubmit);
+        document.getElementById('trabajoForm').addEventListener('submit', handleTrabajoSubmit);
+        document.getElementById('volverBtn').addEventListener('click', showTrabajosList);
+        document.getElementById('registrarPagoBtn').addEventListener('click', showRegistrarPagoModal);
+        document.getElementById('guardarPagoBtn').addEventListener('click', handlePagoSubmit);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('editarTrabajoBtn').addEventListener('click', handleEditarTrabajo);
+        
+        // Toggle factura container
+        requiereFactura.addEventListener('change', function() {
+            facturaContainer.style.display = this.checked ? 'block' : 'none';
+        });
+
+        // Funciones de autenticación
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const hashedPassword = CryptoJS.SHA256(password).toString();
+            
+            const user = DB.usuarios.find(u => u.usuario === username && u.password === hashedPassword);
+            
+            if (user) {
+                currentUser = user;
+                showDashboard();
+            } else {
+                alert('Usuario o contraseña incorrectos');
+            }
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('registerNombre').value;
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                alert('Las contraseñas no coinciden');
+                return;
+            }
+            
+            // Verificar si el usuario ya existe
+            if (DB.usuarios.some(u => u.usuario === username)) {
+                alert('El nombre de usuario ya existe');
+                return;
+            }
+            
+            // Crear nuevo usuario
+            const newUser = {
+                id: DB.usuarios.length > 0 ? Math.max(...DB.usuarios.map(u => u.id)) + 1 : 1,
+                nombre,
+                usuario: username,
+                password: CryptoJS.SHA256(password).toString()
+            };
+            
+            DB.usuarios.push(newUser);
+            DB.saveUsuarios();
+            
+            alert('Usuario registrado correctamente');
+            
+            // Cambiar a la pestaña de login
+            document.getElementById('login-tab').click();
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            showLoginForm();
+        }
+
+        // Funciones de navegación
+        function showLoginForm() {
+            loginContainer.style.display = 'block';
+            dashboardContainer.style.display = 'none';
+        }
+
+        function showDashboard() {
+            loginContainer.style.display = 'none';
+            dashboardContainer.style.display = 'block';
+            userWelcome.textContent = `Bienvenido, ${currentUser.nombre}`;
+            
+            showTrabajosList();
+        }
+
+        function showTrabajosList() {
+            trabajosListaContainer.style.display = 'block';
+            clienteFormContainer.style.display = 'none';
+            trabajoFormContainer.style.display = 'none';
+            trabajoDetalleContainer.style.display = 'none';
+            
+            loadTrabajos();
+        }
+
+        function showClienteForm() {
+            trabajosListaContainer.style.display = 'none';
+            clienteFormContainer.style.display = 'block';
+            trabajoFormContainer.style.display = 'none';
+            trabajoDetalleContainer.style.display = 'none';
+            
+            // Limpiar formulario
+            document.getElementById('clienteForm').reset();
+        }
+
+        function showTrabajoForm() {
+            trabajosListaContainer.style.display = 'none';
+            clienteFormContainer.style.display = 'none';
+            trabajoFormContainer.style.display = 'block';
+            trabajoDetalleContainer.style.display = 'none';
+            
+            // Limpiar formulario
+            document.getElementById('trabajoForm').reset();
+            facturaContainer.style.display = 'none';
+            
+            // Cargar clientes
+            loadClientesSelect();
+        }
+
+        function showTrabajoDetalle(trabajoId) {
+            trabajosListaContainer.style.display = 'none';
+            clienteFormContainer.style.display = 'none';
+            trabajoFormContainer.style.display = 'none';
+            trabajoDetalleContainer.style.display = 'block';
+            
+            currentTrabajoId = trabajoId;
+            loadTrabajoDetalle(trabajoId);
+        }
+
+        function showRegistrarPagoModal() {
+            const trabajo = DB.trabajos.find(t => t.id === currentTrabajoId);
+            
+            if (!trabajo) return;
+            
+            if (trabajo.saldo <= 0) {
+                alert('Este trabajo ya está pagado completamente');
+                return;
+            }
+            
+            document.getElementById('saldoPendiente').textContent = trabajo.saldo.toFixed(2);
+            document.getElementById('pagoMonto').max = trabajo.saldo;
+            document.getElementById('pagoMonto').value = '';
+            
+            registrarPagoModal.show();
+        }
+
+        // Funciones de carga de datos
+        function loadTrabajos() {
+            trabajosTableBody.innerHTML = '';
+            
+            const trabajosUsuario = DB.trabajos.filter(t => t.usuario_id === currentUser.id);
+            
+            if (trabajosUsuario.length === 0) {
+                trabajosTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center">No hay trabajos registrados</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            trabajosUsuario.forEach(trabajo => {
+                const cliente = DB.clientes.find(c => c.id === trabajo.cliente_id);
+                const clienteNombre = cliente ? cliente.nombre : 'Cliente desconocido';
+                
+                const row = document.createElement('tr');
+                row.className = 'trabajo-item';
+                row.addEventListener('click', () => showTrabajoDetalle(trabajo.id));
+                
+                let badgeClass = '';
+                switch (trabajo.estado) {
+                    case 'Pendiente': badgeClass = 'badge-pendiente'; break;
+                    case 'En Proceso': badgeClass = 'badge-proceso'; break;
+                    case 'Terminado': badgeClass = 'badge-terminado'; break;
+                    case 'Entregado': badgeClass = 'badge-entregado'; break;
+                }
+                
+                row.innerHTML = `
+                    <td>${trabajo.id}</td>
+                    <td>${clienteNombre}</td>
+                    <td>${trabajo.descripcion.substring(0, 30)}${trabajo.descripcion.length > 30 ? '...' : ''}</td>
+                    <td>${new Date(trabajo.fecha_creacion).toLocaleDateString()}</td>
+                    <td>$${trabajo.valor_total.toFixed(2)}</td>
+                    <td class="${trabajo.saldo > 0 ? 'saldo-positivo' : 'saldo-cero'}">$${trabajo.saldo.toFixed(2)}</td>
+                    <td><span class="badge ${badgeClass}">${trabajo.estado}</span></td>
+                `;
+                
+                trabajosTableBody.appendChild(row);
+            });
+        }
+
+        function loadClientesSelect() {
+            trabajoCliente.innerHTML = '<option value="">Seleccione un cliente</option>';
+            
+            const clientesUsuario = DB.clientes.filter(c => c.usuario_id === currentUser.id);
+            
+            clientesUsuario.forEach(cliente => {
+                const option = document.createElement('option');
+                option.value = cliente.id;
+                option.textContent = cliente.nombre;
+                trabajoCliente.appendChild(option);
+            });
+        }
+
+        function loadTrabajoDetalle(trabajoId) {
+            const trabajo = DB.trabajos.find(t => t.id === trabajoId);
+            
+            if (!trabajo) {
+                alert('Trabajo no encontrado');
+                showTrabajosList();
+                return;
+            }
+            
+            const cliente = DB.clientes.find(c => c.id === trabajo.cliente_id);
+            
+            // Actualizar información del trabajo
+            document.getElementById('trabajoDetalleId').textContent = trabajo.id;
+            document.getElementById('detalleCliente').textContent = cliente ? cliente.nombre : 'Cliente desconocido';
+            
+            const detalleEstado = document.getElementById('detalleEstado');
+            detalleEstado.textContent = trabajo.estado;
+            
+            let badgeClass = '';
+            switch (trabajo.estado) {
+                case 'Pendiente': badgeClass = 'badge-pendiente'; break;
+                case 'En Proceso': badgeClass = 'badge-proceso'; break;
+                case 'Terminado': badgeClass = 'badge-terminado'; break;
+                case 'Entregado': badgeClass = 'badge-entregado'; break;
+            }
+            detalleEstado.className = `badge ${badgeClass}`;
+            
+            document.getElementById('detalleFecha').textContent = new Date(trabajo.fecha_creacion).toLocaleDateString();
+            document.getElementById('detalleValor').textContent = `$${trabajo.valor_total.toFixed(2)}`;
+            
+            const detalleSaldo = document.getElementById('detalleSaldo');
+            detalleSaldo.textContent = `$${trabajo.saldo.toFixed(2)}`;
+            detalleSaldo.className = trabajo.saldo > 0 ? 'saldo-positivo' : 'saldo-cero';
+            
+            document.getElementById('detalleDescripcion').textContent = trabajo.descripcion;
+            
+            // Mostrar factura si es necesario
+            if (trabajo.requiere_factura) {
+                document.getElementById('detalleFacturaContainer').style.display = 'block';
+                document.getElementById('detalleFactura').textContent = trabajo.factura_electronica || 'No registrada';
+            } else {
+                document.getElementById('detalleFacturaContainer').style.display = 'none';
+            }
+            
+            // Cargar pagos
+            const pagosTableBody = document.getElementById('pagosTableBody');
+            pagosTableBody.innerHTML = '';
+            
+            const pagosDelTrabajo = DB.pagos.filter(p => p.trabajo_id === trabajo.id);
+            
+            if (pagosDelTrabajo.length === 0) {
+                document.getElementById('noPagosMessage').style.display = 'block';
+            } else {
+                document.getElementById('noPagosMessage').style.display = 'none';
+                
+                pagosDelTrabajo.forEach(pago => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${new Date(pago.fecha).toLocaleDateString()}</td>
+                        <td>$${pago.monto.toFixed(2)}</td>
+                    `;
+                    pagosTableBody.appendChild(row);
+                });
+            }
+            
+            // Habilitar/deshabilitar botón de pago
+            document.getElementById('registrarPagoBtn').disabled = trabajo.saldo <= 0;
+        }
+
+        // Funciones de manejo de formularios
+        function handleClienteSubmit(e) {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('clienteNombre').value;
+            const telefono = document.getElementById('clienteTelefono').value;
+            
+            // Crear nuevo cliente
+            const newCliente = {
+                id: DB.clientes.length > 0 ? Math.max(...DB.clientes.map(c => c.id)) + 1 : 1,
+                nombre,
+                telefono,
+                usuario_id: currentUser.id
+            };
+            
+            DB.clientes.push(newCliente);
+            DB.saveClientes();
+            
+            alert('Cliente registrado correctamente');
+            showTrabajosList();
+        }
+
+        function handleTrabajoSubmit(e) {
+            e.preventDefault();
+            
+            const clienteId = parseInt(document.getElementById('trabajoCliente').value);
+            const descripcion = document.getElementById('trabajoDescripcion').value;
+            const valorTotal = parseFloat(document.getElementById('trabajoValor').value);
+            const estado = document.getElementById('trabajoEstado').value;
+            const requiereFacturaCheck = document.getElementById('requiereFactura').checked;
+            const facturaElectronica = requiereFacturaCheck ? document.getElementById('facturaNumero').value : null;
+            
+            if (!clienteId) {
+                alert('Debe seleccionar un cliente');
+                return;
+            }
+            
+            // Crear nuevo trabajo
+            const newTrabajo = {
+                id: DB.trabajos.length > 0 ? Math.max(...DB.trabajos.map(t => t.id)) + 1 : 1,
+                cliente_id: clienteId,
+                descripcion,
+                fecha_creacion: new Date().toISOString(),
+                valor_total: valorTotal,
+                saldo: valorTotal, // Saldo inicial igual al valor total
+                estado,
+                requiere_factura: requiereFacturaCheck,
+                factura_electronica: facturaElectronica,
+                usuario_id: currentUser.id
+            };
+            
+            DB.trabajos.push(newTrabajo);
+            DB.saveTrabajos();
+            
+            alert('Trabajo registrado correctamente');
+            showTrabajosList();
+        }
+
+        function handlePagoSubmit() {
+            const monto = parseFloat(document.getElementById('pagoMonto').value);
+            const trabajo = DB.trabajos.find(t => t.id === currentTrabajoId);
+            
+            if (!trabajo) return;
+            
+            if (isNaN(monto) || monto <= 0) {
+                alert('Ingrese un monto válido mayor que cero');
+                return;
+            }
+            
+            if (monto > trabajo.saldo) {
+                alert('El monto no puede ser mayor al saldo pendiente');
+                return;
+            }
+            
+            // Crear nuevo pago
+            const newPago = {
+                id: DB.pagos.length > 0 ? Math.max(...DB.pagos.map(p => p.id)) + 1 : 1,
+                trabajo_id: currentTrabajoId,
+                monto,
+                fecha: new Date().toISOString()
+            };
+            
+            DB.pagos.push(newPago);
+            DB.savePagos();
+            
+            // Actualizar saldo del trabajo
+            trabajo.saldo -= monto;
+            DB.saveTrabajos();
+            
+            registrarPagoModal.hide();
+            alert('Pago registrado correctamente');
+            
+            // Recargar detalle del trabajo
+            loadTrabajoDetalle(currentTrabajoId);
+        }
+
+        function handleEditarTrabajo() {
+            // Esta función se implementaría para editar un trabajo existente
+            alert('Funcionalidad de edición no implementada en esta versión simplificada');
+        }
+
+        // Inicializar la aplicación
+        showLoginForm();
+    </script>
+</body>
+</html>
